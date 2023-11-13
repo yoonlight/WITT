@@ -110,12 +110,12 @@ def get_loader(args, config):
         train_dataset = dataset_(root=config.train_data_dir,
                                  train=True,
                                  transform=transform_train,
-                                 download=False)
+                                 download=True)
 
         test_dataset = dataset_(root=config.test_data_dir,
                                 train=False,
                                 transform=transform_test,
-                                download=False)
+                                download=True)
 
         train_dataset = CIFAR10(train_dataset)
 

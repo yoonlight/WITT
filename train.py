@@ -53,8 +53,8 @@ class config():
 
     # training details
     normalize = False
-    learning_rate = 0.0001
-    tot_epoch = 10000000
+    learning_rate = 1e-4
+    tot_epoch = 50
 
     if args.trainset == 'CIFAR10':
         save_model_freq = 5
@@ -112,16 +112,17 @@ def load_weights(model_path):
 
 def train_one_epoch(args):
     net.train()
-    elapsed, losses, psnrs, msssims, cbrs, snrs = [AverageMeter() for _ in range(6)]
+    elapsed, losses, psnrs, msssims, cbrs, snrs, PAPRdBs = [AverageMeter() for _ in range(7)]
     metrics = [elapsed, losses, psnrs, msssims, cbrs, snrs]
     global global_step
+    psnr_all_list = []
     if args.trainset == 'CIFAR10':
         for batch_idx, (input, label) in enumerate(train_loader):
             start_time = time.time()
             global_step += 1
             input = input.cuda()
-            recon_image, CBR, SNR, mse, loss_G = net(input)
-            loss = loss_G
+            recon_image, CBR, SNR, mse, loss_G, PAPRdB, PAPRloss, one_batch_PSNR = net(input)
+            loss = mse + 0.01 * PAPRloss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -129,6 +130,8 @@ def train_one_epoch(args):
             losses.update(loss.item())
             cbrs.update(CBR)
             snrs.update(SNR)
+            psnr_all_list.extend(one_batch_PSNR)
+            # PAPRdBs.update(PAPRdB.mean())
             if mse.item() > 0:
                 psnr = 10 * (torch.log(255. * 255. / mse) / np.log(10))
                 psnrs.update(psnr.item())
@@ -139,6 +142,8 @@ def train_one_epoch(args):
                 msssims.update(100)
 
             if (global_step % config.print_step) == 0:
+                test_PSNR=np.mean(psnr_all_list)
+                test_PSNR=np.around(test_PSNR,5)
                 process = (global_step % train_loader.__len__()) / (train_loader.__len__()) * 100.0
                 log = (' | '.join([
                     f'Epoch {epoch}',
@@ -150,6 +155,8 @@ def train_one_epoch(args):
                     f'PSNR {psnrs.val:.3f} ({psnrs.avg:.3f})',
                     f'MSSSIM {msssims.val:.3f} ({msssims.avg:.3f})',
                     f'Lr {cur_lr}',
+                    f'PAPRdB {PAPRdB.mean()}',
+                    f'PSNR {test_PSNR}'
                 ]))
                 logger.info(log)
                 for i in metrics:
@@ -209,13 +216,13 @@ def test():
     results_cbr = np.zeros(len(multiple_snr))
     results_psnr = np.zeros(len(multiple_snr))
     results_msssim = np.zeros(len(multiple_snr))
-    for i, SNR in enumerate(multiple_snr):
+    for i, snr in enumerate(multiple_snr):
         with torch.no_grad():
             if args.trainset == 'CIFAR10':
                 for batch_idx, (input, label) in enumerate(test_loader):
                     start_time = time.time()
                     input = input.cuda()
-                    recon_image, CBR, SNR, mse, loss_G = net(input, SNR)
+                    recon_image, CBR, SNR, mse, loss_G, PAPRdB, PAPRloss, one_batch_PSNR = net(input, snr)
                     elapsed.update(time.time() - start_time)
                     cbrs.update(CBR)
                     snrs.update(SNR)
@@ -282,8 +289,6 @@ if __name__ == '__main__':
     logger.info(config.__dict__)
     torch.manual_seed(seed=config.seed)
     net = WITT(args, config)
-    model_path = "./WITT_model/WITT_AWGN_DIV2K_fixed_snr10_psnr_C96.model"
-    load_weights(model_path)
     net = net.cuda()
     model_params = [{'params': net.parameters(), 'lr': 0.0001}]
     train_loader, test_loader = get_loader(args, config)
