@@ -1,7 +1,6 @@
 history
 logs/*
 !logs/.gitkeep
-.devcontainer/devcontainer.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

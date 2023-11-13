@@ -1,0 +1,49 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
+{
+	"name": "WITT",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "pytorch/pytorch:1.8.1-cuda11.1-cudnn8-devel",
+	"runArgs": [
+		"--gpus=0",
+		"--ipc=host"
+	],
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"[python]": {
+					"editor.defaultFormatter": "ms-python.autopep8",
+					"editor.formatOnType": true
+				},
+				"autopep8.showNotifications": "always",
+				"pylint.showNotifications": "off",
+				"autopep8.args": ["--select=W291"]
+			},
+			"extensions": [
+				"ms-python.python",
+				"ms-python.pylint",
+				"ms-python.autopep8",
+				"yzhang.markdown-all-in-one",
+				"shd101wyy.markdown-preview-enhanced",
+				"davidanson.vscode-markdownlint",
+				"joshbolduc.commitlint",
+				"ms-toolsai.jupyter",
+				"natqe.reload",
+				"shardulm94.trailing-spaces"
+			]
+		}
+	},
+	"shutdownAction": "none"
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
